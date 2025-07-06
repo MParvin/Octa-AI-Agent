@@ -1,6 +1,6 @@
 # Watch Git Action
 
-The `watch-git` action monitors a Git repository for changes over a specified period of time.
+The `watch-git` action monitors a Git repository for changes over a specified period of time. It uses **YAML format** for both input and output, making it highly human-readable and easy to configure.
 
 ## Features
 
@@ -11,6 +11,7 @@ The `watch-git` action monitors a Git repository for changes over a specified pe
 - **Exit on first change**: By default, exits immediately when a change is detected
 - **Continuous monitoring**: Can be configured to monitor for multiple changes
 - **File change tracking**: Reports which files were added, modified, or deleted in each commit
+- **YAML format**: Human-readable input and output using YAML instead of JSON
 - Reports detected changes with commit details
 - Memory-efficient operation (uses in-memory cloning)
 
@@ -54,20 +55,38 @@ The `watch-git` action monitors a Git repository for changes over a specified pe
 
 ### Exit on First Change (Default Behavior)
 
+Create a YAML file `input.yaml`:
+```yaml
+url: "https://github.com/owner/repo.git"
+branch: "main"
+interval: 30
+max_checks: 5
+```
+
+Run the action:
 ```bash
-echo '{"url": "https://github.com/owner/repo.git", "branch": "main", "interval": 30, "max_checks": 5}' | ./bin/watch-git
+cat input.yaml | ./bin/watch-git
 ```
 
 ### Continuous Monitoring (Multiple Changes)
 
-```bash
-echo '{"url": "https://github.com/owner/repo.git", "branch": "main", "interval": 30, "max_checks": 10, "exit_on_change": false}' | ./bin/watch-git
+```yaml
+url: "https://github.com/owner/repo.git"
+branch: "main"
+interval: 30
+max_checks: 10
+exit_on_change: false
 ```
 
 ### With Authentication (Private Repository)
 
-```bash
-echo '{"url": "https://github.com/owner/private-repo.git", "username": "your-username", "password": "your-token", "branch": "develop", "interval": 60, "max_checks": 10}' | ./bin/watch-git
+```yaml
+url: "https://github.com/owner/private-repo.git"
+username: "your-username"
+password: "your-token"
+branch: "develop"
+interval: 60
+max_checks: 10
 ```
 
 ### In a Workflow
@@ -91,31 +110,25 @@ See `examples/git-watch.json` for a complete workflow example that demonstrates 
 
 ## Example Output with Changes
 
-When a change is detected, the output includes detailed file information:
+When a change is detected, the output includes detailed file information in YAML format:
 
-```json
-{
-  "success": true,
-  "message": "Change detected in repository https://github.com/owner/repo.git on branch main - exited early",
-  "url": "https://github.com/owner/repo.git",
-  "branch": "main",
-  "last_commit": "abc123def456...",
-  "changes": [
-    {
-      "commit_hash": "abc123def456...",
-      "author": "John Doe",
-      "message": "Fix critical bug in authentication",
-      "timestamp": "2024-07-06T15:30:00Z",
-      "files_changed": [
-        "src/auth.go",
-        "tests/auth_test.go",
-        "docs/README.md (added)",
-        "old_file.txt (deleted)"
-      ]
-    }
-  ],
-  "check_count": 2
-}
+```yaml
+success: true
+message: "Change detected in repository https://github.com/owner/repo.git on branch main - exited early"
+url: "https://github.com/owner/repo.git"
+branch: "main"
+last_commit: "abc123def456..."
+changes:
+  - commit_hash: "abc123def456..."
+    author: "John Doe"
+    message: "Fix critical bug in authentication"
+    timestamp: "2024-07-06T15:30:00Z"
+    files_changed:
+      - "src/auth.go"
+      - "tests/auth_test.go"
+      - "docs/README.md (added)"
+      - "old_file.txt (deleted)"
+check_count: 2
 ```
 
 ## File Change Annotations

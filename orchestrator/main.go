@@ -2,13 +2,14 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"strings"
 	"text/template"
+
+	"gopkg.in/yaml.v3"
 )
 
 // ANSI color codes
@@ -30,35 +31,35 @@ const (
 
 // WorkflowV1 represents the V1 workflow definition structure
 type WorkflowV1 struct {
-	Name               string            `json:"name"`
-	Description        string            `json:"description"`
-	WorkflowDataSchema map[string]string `json:"workflow_data_schema,omitempty"`
-	Nodes              []NodeV1          `json:"nodes"`
+	Name               string            `yaml:"name"`
+	Description        string            `yaml:"description"`
+	WorkflowDataSchema map[string]string `yaml:"workflow_data_schema,omitempty"`
+	Nodes              []NodeV1          `yaml:"nodes"`
 }
 
-// NodeV1 represents a V1 action node with JSON-based input
+// NodeV1 represents a V1 action node with YAML-based input
 type NodeV1 struct {
-	ID                 string                 `json:"id"`
-	Type               string                 `json:"type"`
-	InputsFromWorkflow map[string]interface{} `json:"inputs_from_workflow"`
+	ID                 string                 `yaml:"id"`
+	Type               string                 `yaml:"type"`
+	InputsFromWorkflow map[string]interface{} `yaml:"inputs_from_workflow"`
 }
 
 // TemplateContext holds data available for templating
 type TemplateContext struct {
-	WorkflowData map[string]interface{} `json:"workflow_data"`
-	Nodes        map[string]NodeOutput  `json:"nodes"`
+	WorkflowData map[string]interface{} `yaml:"workflow_data"`
+	Nodes        map[string]NodeOutput  `yaml:"nodes"`
 }
 
-// NodeOutput stores the JSON output from executed nodes
+// NodeOutput stores the YAML output from executed nodes
 type NodeOutput struct {
-	Output map[string]interface{} `json:"output"`
-	Error  string                 `json:"error,omitempty"`
+	Output map[string]interface{} `yaml:"output"`
+	Error  string                 `yaml:"error,omitempty"`
 }
 
 // ActionError represents an error response from an action
 type ActionError struct {
-	Error           string                 `json:"error"`
-	OriginalRequest map[string]interface{} `json:"original_request,omitempty"`
+	Error           string                 `yaml:"error"`
+	OriginalRequest map[string]interface{} `yaml:"original_request,omitempty"`
 }
 
 func main() {
@@ -67,7 +68,7 @@ func main() {
 
 	// Check command-line arguments
 	if len(os.Args) < 2 || len(os.Args) > 3 {
-		fmt.Fprintf(os.Stderr, "Usage: %s <workflow_file.json> [initial_data_json]\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage: %s <workflow_file.yaml> [initial_data_yaml]\n", os.Args[0])
 		os.Exit(1)
 	}
 
@@ -77,8 +78,8 @@ func main() {
 	// Parse optional initial data
 	if len(os.Args) == 3 {
 		initialDataStr := os.Args[2]
-		if err := json.Unmarshal([]byte(initialDataStr), &initialData); err != nil {
-			log.Fatalf("Error parsing initial data JSON: %v", err)
+		if err := yaml.Unmarshal([]byte(initialDataStr), &initialData); err != nil {
+			log.Fatalf("Error parsing initial data YAML: %v", err)
 		}
 	} else {
 		initialData = make(map[string]interface{})
@@ -105,7 +106,7 @@ func main() {
 	log.Printf("Workflow completed successfully %s", statusOK)
 }
 
-// parseWorkflowV1 reads and parses the V1 workflow JSON file
+// parseWorkflowV1 reads and parses the V1 workflow YAML file
 func parseWorkflowV1(filename string) (*WorkflowV1, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
@@ -113,8 +114,8 @@ func parseWorkflowV1(filename string) (*WorkflowV1, error) {
 	}
 
 	var workflow WorkflowV1
-	if err := json.Unmarshal(data, &workflow); err != nil {
-		return nil, fmt.Errorf("failed to parse JSON: %w", err)
+	if err := yaml.Unmarshal(data, &workflow); err != nil {
+		return nil, fmt.Errorf("failed to parse YAML: %w", err)
 	}
 
 	return &workflow, nil
@@ -159,13 +160,13 @@ func executeNodeV1(node NodeV1, context *TemplateContext) (map[string]interface{
 		return nil, fmt.Errorf("failed to resolve templates: %w", err)
 	}
 
-	// Convert resolved input to JSON
-	inputJSON, err := json.Marshal(resolvedInput)
+	// Convert resolved input to YAML
+	inputYAML, err := yaml.Marshal(resolvedInput)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal input JSON: %w", err)
+		return nil, fmt.Errorf("failed to marshal input YAML: %w", err)
 	}
 
-	log.Printf("Sending to action: %s", string(inputJSON))
+	log.Printf("Sending to action: %s", string(inputYAML))
 
 	// Get the path to the orchestrator binary
 	execPath, err := os.Executable()
@@ -178,7 +179,7 @@ func executeNodeV1(node NodeV1, context *TemplateContext) (map[string]interface{
 
 	// Execute the action binary
 	cmd := exec.Command(actionPath)
-	cmd.Stdin = strings.NewReader(string(inputJSON))
+	cmd.Stdin = strings.NewReader(string(inputYAML))
 
 	// Capture stdout and stderr separately
 	var stdout, stderr bytes.Buffer
@@ -199,10 +200,10 @@ func executeNodeV1(node NodeV1, context *TemplateContext) (map[string]interface{
 		log.Printf("Action stderr: %s %s", stderr.String(), statusINFO)
 	}
 
-	// Parse the output JSON
+	// Parse the output YAML
 	var output map[string]interface{}
-	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
-		return nil, fmt.Errorf("failed to parse action output JSON: %w", err)
+	if err := yaml.Unmarshal(stdout.Bytes(), &output); err != nil {
+		return nil, fmt.Errorf("failed to parse action output YAML: %w", err)
 	}
 
 	// Check for error in the output
@@ -216,14 +217,14 @@ func executeNodeV1(node NodeV1, context *TemplateContext) (map[string]interface{
 
 // resolveTemplates processes templates in the input data
 func resolveTemplates(input map[string]interface{}, context *TemplateContext) (map[string]interface{}, error) {
-	// Convert input to JSON and back to handle nested structures
-	inputJSON, err := json.Marshal(input)
+	// Convert input to YAML and back to handle nested structures
+	inputYAML, err := yaml.Marshal(input)
 	if err != nil {
 		return nil, err
 	}
 
-	// Apply template processing to the JSON string
-	tmpl, err := template.New("input").Parse(string(inputJSON))
+	// Apply template processing to the YAML string
+	tmpl, err := template.New("input").Parse(string(inputYAML))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse template: %w", err)
 	}
@@ -233,10 +234,10 @@ func resolveTemplates(input map[string]interface{}, context *TemplateContext) (m
 		return nil, fmt.Errorf("failed to execute template: %w", err)
 	}
 
-	// Parse the resolved JSON back
+	// Parse the resolved YAML back
 	var resolved map[string]interface{}
-	if err := json.Unmarshal(buf.Bytes(), &resolved); err != nil {
-		return nil, fmt.Errorf("failed to parse resolved JSON: %w", err)
+	if err := yaml.Unmarshal(buf.Bytes(), &resolved); err != nil {
+		return nil, fmt.Errorf("failed to parse resolved YAML: %w", err)
 	}
 
 	return resolved, nil

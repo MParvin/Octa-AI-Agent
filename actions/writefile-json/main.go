@@ -1,36 +1,43 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
+
+	"gopkg.in/yaml.v3"
 )
 
-// ActionInput represents the input structure for the writefile-json action
+// ActionInput represents the input structure for the writefile action
 type ActionInput struct {
-	Path     string `json:"path"`
-	Content  string `json:"content"`
-	Mode     string `json:"mode,omitempty"`      // "create", "append", "overwrite" (default: create)
-	MkdirAll bool   `json:"mkdir_all,omitempty"` // Create parent directories if they don't exist
+	Path     string `yaml:"path"`
+	Content  string `yaml:"content"`
+	Mode     string `yaml:"mode,omitempty"`      // "create", "append", "overwrite" (default: create)
+	MkdirAll bool   `yaml:"mkdir_all,omitempty"` // Create parent directories if they don't exist
 }
 
-// ActionOutput represents the output structure for the writefile-json action
+// ActionOutput represents the output structure for the writefile action
 type ActionOutput struct {
-	Success bool   `json:"success"`
-	Message string `json:"message"`
-	Path    string `json:"path"`
-	Size    int64  `json:"size,omitempty"`
-	Error   string `json:"error,omitempty"`
+	Success bool   `yaml:"success"`
+	Message string `yaml:"message"`
+	Path    string `yaml:"path"`
+	Size    int64  `yaml:"size,omitempty"`
+	Error   string `yaml:"error,omitempty"`
 }
 
 func main() {
-	// Read JSON input from stdin
+	// Read YAML input from stdin
+	inputData, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		sendErrorResponse("Failed to read input from stdin", err.Error())
+		return
+	}
+
 	var input ActionInput
-	decoder := json.NewDecoder(os.Stdin)
-	if err := decoder.Decode(&input); err != nil {
-		sendErrorResponse("Failed to parse JSON input", err.Error())
+	if err := yaml.Unmarshal(inputData, &input); err != nil {
+		sendErrorResponse("Failed to parse YAML input", err.Error())
 		return
 	}
 
@@ -70,14 +77,13 @@ func main() {
 	}
 
 	// Handle different write modes
-	var err error
 	var file *os.File
 	var fileInfo os.FileInfo
 
 	switch input.Mode {
 	case "create":
 		// Check if file exists
-		if _, err := os.Stat(input.Path); err == nil {
+		if _, statErr := os.Stat(input.Path); statErr == nil {
 			sendErrorResponse("File already exists", fmt.Sprintf("file %s already exists and mode is 'create'", input.Path))
 			return
 		}
@@ -115,11 +121,12 @@ func main() {
 		Size:    fileInfo.Size(),
 	}
 
-	encoder := json.NewEncoder(os.Stdout)
-	if err := encoder.Encode(output); err != nil {
-		log.Printf("Failed to encode output: %v", err)
+	outputYAML, err := yaml.Marshal(output)
+	if err != nil {
+		log.Printf("Failed to marshal output: %v", err)
 		os.Exit(1)
 	}
+	fmt.Print(string(outputYAML))
 }
 
 func sendErrorResponse(message, errorDetail string) {
@@ -129,9 +136,12 @@ func sendErrorResponse(message, errorDetail string) {
 		Error:   errorDetail,
 	}
 
-	encoder := json.NewEncoder(os.Stdout)
-	if err := encoder.Encode(output); err != nil {
-		log.Printf("Failed to encode error response: %v", err)
+	outputYAML, err := yaml.Marshal(output)
+	if err != nil {
+		log.Printf("Failed to marshal error response: %v", err)
+		fmt.Printf("success: false\nmessage: \"%s\"\nerror: \"%s\"\n", message, errorDetail)
+	} else {
+		fmt.Print(string(outputYAML))
 	}
 	os.Exit(1)
 }

@@ -1,12 +1,12 @@
 # Go AI Agent V1.0
 
-A modular, extensible workflow orchestration engine built in Go with JSON-based inter-module communication, advanced templating, and robust error handling.
+A modular, extensible workflow orchestration engine built in Go with YAML-based inter-module communication, advanced templating, and robust error handling.
 
 ## 🚀 New in V1.0
 
-- **JSON Communication Protocol**: All modules communicate via JSON stdin/stdout for better data handling
+- **YAML Communication Protocol**: All modules communicate via YAML stdin/stdout for human-readable data handling
 - **Go Template System**: Advanced templating using Go's `text/template` package with workflow data and node context
-- **Initial Workflow Data**: Support for passing initial JSON data to workflows
+- **Initial Workflow Data**: Support for passing initial YAML data to workflows
 - **Enhanced Error Handling**: Structured error responses with graceful degradation
 - **New Action Modules**: `writefile-json`, `httprequest` with comprehensive features
 - **CLI Interface**: Command-based interface with validation capabilities
@@ -23,12 +23,20 @@ go-ai-agent-v1/
 │   ├── main.go
 │   └── go.mod
 ├── actions/               # Action modules
-│   ├── echo-json/         # Echo action with JSON I/O
+│   ├── echo-json/         # Echo action with YAML I/O
 │   ├── writefile-json/    # File writing action
-│   └── httprequest/       # HTTP request action
+│   ├── httprequest/       # HTTP request action
+│   ├── claude-api/        # Claude AI integration action
+│   └── watch-git/         # Git repository watcher action
 ├── workflows/             # Sample workflows
-│   ├── v1-demo.json       # Comprehensive demo workflow
-│   └── simple-test.json   # Basic functionality test
+│   ├── v1-demo.json       # Comprehensive demo workflow (legacy)
+│   ├── simple-test.yaml   # Basic functionality test (YAML)
+│   └── simple-test.json   # Basic functionality test (legacy)
+├── examples/              # Example YAML workflows
+│   ├── hello-world.yaml   # Simple greeting workflow
+│   ├── file-operations.yaml # File creation and templating
+│   ├── api-integration.yaml # External API integration
+│   └── claude-ai-integration.yaml # AI integration example
 ├── bin/                   # Built binaries (created by build.sh)
 ├── build.sh              # Build script
 └── README.md             # This file
@@ -56,6 +64,8 @@ This creates the following binaries in the `bin/` directory:
 - `echo-json` - Echo action module
 - `writefile-json` - File writing action module
 - `httprequest` - HTTP request action module
+- `claude-api` - Claude AI integration action module
+- `watch-git` - Git repository watcher action module
 
 ## 🎯 Usage
 
@@ -65,50 +75,68 @@ The CLI provides two main commands:
 
 #### Run a Workflow
 ```bash
-./bin/cli run <workflow-file> [initial-data]
+./bin/cli run <workflow-file.yaml> [initial-data-yaml]
 ```
 
 Examples:
 ```bash
-# Run simple test workflow
-./bin/cli run workflows/simple-test.json '{"agent_name":"Go-AI-Agent","test_id":"123"}'
+# Run simple test workflow with YAML
+./bin/cli run workflows/simple-test.yaml 'agent_name: "Go-AI-Agent"
+test_id: "123"'
 
-# Run demo workflow with comprehensive data
-./bin/cli run workflows/v1-demo.json '{"user_name":"Alice","user_id":"1","timestamp":"2024-01-20T10:30:00Z","output_dir":"/tmp/reports"}'
+# Run hello world example
+./bin/cli run examples/hello-world.yaml 'name: "Alice"'
+
+# Run file operations workflow
+./bin/cli run examples/file-operations.yaml 'user_id: "1"
+timestamp: "2024-01-20T10:30:00Z"'
 ```
 
 #### Validate a Workflow
 ```bash
-./bin/cli validate <workflow-file>
+./bin/cli validate <workflow-file.yaml>
+```
+
+Examples:
+```bash
+./bin/cli validate examples/hello-world.yaml
+./bin/cli validate workflows/simple-test.yaml
 ```
 
 ### Direct Orchestrator Usage
 ```bash
-# Run with workflow file and initial data
-echo '{"user_name":"Alice","user_id":"1","timestamp":"2024-01-20T10:30:00Z","output_dir":"/tmp/reports"}' | ./bin/orchestrator workflows/v1-demo.json
+# Run with workflow file and initial YAML data
+./bin/orchestrator workflows/simple-test.yaml 'agent_name: "Go-AI-Agent"
+test_id: "yaml-test"'
 ```
 
 ## 📄 Workflow Format
 
-V1 workflows use JSON format with enhanced templating capabilities:
+V1 workflows use YAML format with enhanced templating capabilities:
 
-```json
-{
-  "name": "Workflow Name",
-  "description": "Workflow description",
-  "version": "1.0",
-  "steps": [
-    {
-      "id": "unique_step_id",
-      "name": "Human-readable step name",
-      "action": "action-module-name",
-      "inputs": {
-        "param1": "value with {{.WorkflowData.variable}} templating",
-        "param2": "reference to {{.Nodes.previous_step.output_field}}"
-      }
-    }
-  ]
-}
+```yaml
+name: "Workflow Name"
+description: "Workflow description"
+version: "1.0"
+nodes:
+  - id: "unique_node_id"
+    type: "action-module-name"
+    inputs_from_workflow:
+      param1: "value with {{.WorkflowData.variable}} templating"
+      param2: "reference to {{.Nodes.previous_node.Output.field}}"
+```
+
+### Example Workflow
+
+```yaml
+name: "Hello World Workflow"
+description: "Simple greeting workflow with templating"
+version: "1.0"
+nodes:
+  - id: "greeting"
+    type: "echo-json"
+    inputs_from_workflow:
+      message: "Hello, {{.WorkflowData.name}}! Welcome to Go AI Agent V1.0"
 ```
 
 ### Templating System
@@ -116,14 +144,26 @@ V1 workflows use JSON format with enhanced templating capabilities:
 V1 uses Go's `text/template` package with two main contexts:
 
 1. **WorkflowData**: Initial data passed to the workflow
-   ```json
-   "message": "Hello {{.WorkflowData.user_name}}"
+   ```yaml
+   message: "Hello {{.WorkflowData.user_name}}"
    ```
 
-2. **Nodes**: Outputs from previous workflow steps
-   ```json
-   "content": "Status: {{.Nodes.api_call.status_code}}"
+2. **Nodes**: Outputs from previous workflow nodes
+   ```yaml
+   content: "Status: {{.Nodes.api_call.Output.status_code}}"
    ```
+
+### Multi-line Content
+
+YAML's multi-line support makes complex content easier to manage:
+
+```yaml
+content: |
+  This is a multi-line content block
+  that preserves line breaks and formatting.
+  
+  Template variables still work: {{.WorkflowData.user_name}}
+```
 
 ## 🔧 Action Modules
 
@@ -131,75 +171,119 @@ V1 uses Go's `text/template` package with two main contexts:
 Echoes a message with optional formatting.
 
 **Input:**
-```json
-{
-  "message": "string"
-}
+```yaml
+message: "string"
 ```
 
 **Output:**
-```json
-{
-  "success": true,
-  "message": "echoed message"
-}
+```yaml
+echoed_message: "string"
+original_input:
+  message: "string"
 ```
 
 ### writefile-json
 Writes content to files with various modes.
 
 **Input:**
-```json
-{
-  "path": "/path/to/file",
-  "content": "file content",
-  "mode": "create|append|overwrite",
-  "mkdir_all": true
-}
+```yaml
+path: "/path/to/file"
+content: "file content"
+mode: "create|append|overwrite"
+mkdir_all: true
 ```
 
 **Output:**
-```json
-{
-  "success": true,
-  "message": "Success message",
-  "path": "/path/to/file",
-  "size": 1234
-}
+```yaml
+success: true
+message: "Success message"
+path: "/path/to/file"
+size: 123
+```
+
+**Output:**
+```yaml
+success: true
+message: "Success message"
+path: "/path/to/file"
+size: 1234
 ```
 
 ### httprequest
 Makes HTTP requests with full feature support.
 
 **Input:**
-```json
-{
-  "url": "https://api.example.com/data",
-  "method": "GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS",
-  "headers": {"key": "value"},
-  "body": "request body",
-  "timeout": 30
-}
+```yaml
+url: "https://api.example.com/data"
+method: "GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS"
+headers:
+  key: "value"
+body: "request body"
+timeout: 30
 ```
 
 **Output:**
-```json
-{
-  "success": true,
-  "message": "Request completed",
-  "status_code": 200,
-  "headers": {"content-type": "application/json"},
-  "body": "response body"
-}
+```yaml
+success: true
+message: "Request completed"
+status_code: 200
+headers:
+  content-type: "application/json"
+body: "response body"
+```
+
+### claude-api
+Integrates with Claude AI API for text generation and analysis.
+
+**Input:**
+```yaml
+prompt: "Your question or task"
+model: "claude-3-sonnet-20240229"
+max_tokens: 1000
+temperature: 0.7
+system_prompt: "Optional system instruction"
+```
+
+**Output:**
+```yaml
+success: true
+response: "AI generated response"
+usage:
+  input_tokens: 50
+  output_tokens: 200
+```
+
+### watch-git
+Monitors Git repository for changes and provides status information.
+
+**Input:**
+```yaml
+repo_path: "/path/to/git/repository"
+```
+
+**Output:**
+```yaml
+success: true
+message: "Git status retrieved"
+status: "clean|dirty"
+branch: "main"
+files_changed: 3
 ```
 
 ## 🧪 Testing
 
 ### Quick Test
 ```bash
-# Build and run simple test
+# Build and run simple test with YAML
 ./build.sh
-./bin/cli run workflows/simple-test.json '{"agent_name":"Go-AI-Agent","test_id":"test-'$(date +%s)'"}'
+./bin/cli run workflows/simple-test.yaml 'agent_name: "Go-AI-Agent"
+test_id: "yaml-'$(date +%s)'"'
+```
+
+### Hello World Example
+```bash
+# Run hello world workflow
+./bin/cli run examples/hello-world.yaml 'name: "Your Name"'
 ```
 
 ### Comprehensive Demo

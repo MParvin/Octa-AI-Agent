@@ -1,42 +1,43 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
+
+	"gopkg.in/yaml.v3"
 )
 
 // EchoInput represents the expected input structure
 type EchoInput struct {
-	Message string `json:"message"`
-	Prefix  string `json:"prefix,omitempty"`
+	Message string `yaml:"message"`
+	Prefix  string `yaml:"prefix,omitempty"`
 }
 
 // EchoOutput represents the output structure
 type EchoOutput struct {
-	EchoedMessage string      `json:"echoed_message"`
-	OriginalInput interface{} `json:"original_input"`
+	EchoedMessage string      `yaml:"echoed_message"`
+	OriginalInput interface{} `yaml:"original_input"`
 }
 
 // ErrorOutput represents error response structure
 type ErrorOutput struct {
-	Error           string      `json:"error"`
-	OriginalRequest interface{} `json:"original_request,omitempty"`
+	Error           string      `yaml:"error"`
+	OriginalRequest interface{} `yaml:"original_request,omitempty"`
 }
 
 func main() {
-	// Read JSON input from stdin
+	// Read YAML input from stdin
 	inputData, err := io.ReadAll(os.Stdin)
 	if err != nil {
 		outputError("Failed to read input from stdin", nil)
 		return
 	}
 
-	// Parse input JSON
+	// Parse input YAML
 	var input EchoInput
-	if err := json.Unmarshal(inputData, &input); err != nil {
-		outputError("Invalid input JSON format", string(inputData))
+	if err := yaml.Unmarshal(inputData, &input); err != nil {
+		outputError("Invalid input YAML format", string(inputData))
 		return
 	}
 
@@ -61,13 +62,13 @@ func main() {
 	}
 
 	// Marshal and output result
-	outputJSON, err := json.Marshal(output)
+	outputYAML, err := yaml.Marshal(output)
 	if err != nil {
-		outputError("Failed to marshal output JSON", input)
+		outputError("Failed to marshal output YAML", input)
 		return
 	}
 
-	fmt.Print(string(outputJSON))
+	fmt.Print(string(outputYAML))
 }
 
 // outputError outputs an error response and exits
@@ -77,13 +78,13 @@ func outputError(message string, originalRequest interface{}) {
 		OriginalRequest: originalRequest,
 	}
 
-	outputJSON, err := json.Marshal(errorOutput)
+	outputYAML, err := yaml.Marshal(errorOutput)
 	if err != nil {
 		// Fallback error output
-		fmt.Printf(`{"error": "Failed to marshal error response: %s"}`, message)
+		fmt.Printf("error: \"Failed to marshal error response: %s\"\n", message)
 		os.Exit(1)
 	}
 
-	fmt.Print(string(outputJSON))
+	fmt.Print(string(outputYAML))
 	os.Exit(0) // Exit 0 for graceful error reporting
 }

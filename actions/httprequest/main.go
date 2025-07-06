@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -9,33 +8,40 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 // ActionInput represents the input structure for the httprequest action
 type ActionInput struct {
-	URL     string            `json:"url"`
-	Method  string            `json:"method,omitempty"` // Default: GET
-	Headers map[string]string `json:"headers,omitempty"`
-	Body    string            `json:"body,omitempty"`
-	Timeout int               `json:"timeout,omitempty"` // Timeout in seconds, default: 30
+	URL     string            `yaml:"url"`
+	Method  string            `yaml:"method,omitempty"` // Default: GET
+	Headers map[string]string `yaml:"headers,omitempty"`
+	Body    string            `yaml:"body,omitempty"`
+	Timeout int               `yaml:"timeout,omitempty"` // Timeout in seconds, default: 30
 }
 
 // ActionOutput represents the output structure for the httprequest action
 type ActionOutput struct {
-	Success    bool              `json:"success"`
-	Message    string            `json:"message"`
-	StatusCode int               `json:"status_code,omitempty"`
-	Headers    map[string]string `json:"headers,omitempty"`
-	Body       string            `json:"body,omitempty"`
-	Error      string            `json:"error,omitempty"`
+	Success    bool              `yaml:"success"`
+	Message    string            `yaml:"message"`
+	StatusCode int               `yaml:"status_code,omitempty"`
+	Headers    map[string]string `yaml:"headers,omitempty"`
+	Body       string            `yaml:"body,omitempty"`
+	Error      string            `yaml:"error,omitempty"`
 }
 
 func main() {
-	// Read JSON input from stdin
+	// Read YAML input from stdin
+	inputData, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		sendErrorResponse("Failed to read input from stdin", err.Error())
+		return
+	}
+
 	var input ActionInput
-	decoder := json.NewDecoder(os.Stdin)
-	if err := decoder.Decode(&input); err != nil {
-		sendErrorResponse("Failed to parse JSON input", err.Error())
+	if err := yaml.Unmarshal(inputData, &input); err != nil {
+		sendErrorResponse("Failed to parse YAML input", err.Error())
 		return
 	}
 
@@ -136,11 +142,12 @@ func main() {
 		Body:       string(bodyBytes),
 	}
 
-	encoder := json.NewEncoder(os.Stdout)
-	if err := encoder.Encode(output); err != nil {
-		log.Printf("Failed to encode output: %v", err)
+	outputYAML, err := yaml.Marshal(output)
+	if err != nil {
+		log.Printf("Failed to marshal output: %v", err)
 		os.Exit(1)
 	}
+	fmt.Print(string(outputYAML))
 
 	log.Printf("Request completed with status code: %d", resp.StatusCode)
 }
@@ -152,9 +159,12 @@ func sendErrorResponse(message, errorDetail string) {
 		Error:   errorDetail,
 	}
 
-	encoder := json.NewEncoder(os.Stdout)
-	if err := encoder.Encode(output); err != nil {
-		log.Printf("Failed to encode error response: %v", err)
+	outputYAML, err := yaml.Marshal(output)
+	if err != nil {
+		log.Printf("Failed to marshal error response: %v", err)
+		fmt.Printf("success: false\nmessage: \"%s\"\nerror: \"%s\"\n", message, errorDetail)
+	} else {
+		fmt.Print(string(outputYAML))
 	}
 	os.Exit(1)
 }

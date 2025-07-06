@@ -1,11 +1,12 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
 // ANSI color codes
@@ -30,8 +31,8 @@ func main() {
 	if len(os.Args) < 2 {
 		fmt.Fprintf(os.Stderr, "Usage: %s <command> <args...>\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "Commands:\n")
-		fmt.Fprintf(os.Stderr, "  run <workflow_file.json> [initial_data_json]\n")
-		fmt.Fprintf(os.Stderr, "  validate <workflow_file.json>\n")
+		fmt.Fprintf(os.Stderr, "  run <workflow_file.yaml> [initial_data_yaml]\n")
+		fmt.Fprintf(os.Stderr, "  validate <workflow_file.yaml>\n")
 		os.Exit(1)
 	}
 
@@ -51,7 +52,7 @@ func main() {
 // runWorkflow executes a workflow using the orchestrator
 func runWorkflow() {
 	if len(os.Args) < 3 || len(os.Args) > 4 {
-		fmt.Fprintf(os.Stderr, "Usage: %s run <workflow_file.json> [initial_data_json]\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage: %s run <workflow_file.yaml> [initial_data_yaml]\n", os.Args[0])
 		os.Exit(1)
 	}
 
@@ -73,10 +74,10 @@ func runWorkflow() {
 	if len(os.Args) == 4 {
 		initialData := os.Args[3]
 
-		// Validate that initial data is valid JSON
+		// Validate that initial data is valid YAML
 		var testData map[string]interface{}
-		if err := json.Unmarshal([]byte(initialData), &testData); err != nil {
-			fmt.Fprintf(os.Stderr, "Invalid initial data JSON: %v\n", err)
+		if err := yaml.Unmarshal([]byte(initialData), &testData); err != nil {
+			fmt.Fprintf(os.Stderr, "Invalid initial data YAML: %v\n", err)
 			os.Exit(1)
 		}
 
@@ -97,10 +98,10 @@ func runWorkflow() {
 	}
 }
 
-// validateWorkflow validates the syntax of a workflow JSON file
+// validateWorkflow validates the syntax of a workflow YAML file
 func validateWorkflow() {
 	if len(os.Args) != 3 {
-		fmt.Fprintf(os.Stderr, "Usage: %s validate <workflow_file.json>\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage: %s validate <workflow_file.yaml>\n", os.Args[0])
 		os.Exit(1)
 	}
 
@@ -113,10 +114,10 @@ func validateWorkflow() {
 		os.Exit(1)
 	}
 
-	// Basic JSON validation
+	// Basic YAML validation
 	var workflow map[string]interface{}
-	if err := json.Unmarshal(data, &workflow); err != nil {
-		fmt.Fprintf(os.Stderr, "Invalid JSON syntax: %v\n", err)
+	if err := yaml.Unmarshal(data, &workflow); err != nil {
+		fmt.Fprintf(os.Stderr, "Invalid YAML syntax: %v\n", err)
 		os.Exit(1)
 	}
 

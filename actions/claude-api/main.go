@@ -9,25 +9,27 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 // ActionInput represents the input structure for the claude-api action
 type ActionInput struct {
-	APIKey       string  `json:"api_key,omitempty"`       // Claude API key (can also be set via CLAUDE_API_KEY env var)
-	Model        string  `json:"model,omitempty"`         // Claude model to use (default: claude-3-sonnet-20240229)
-	Prompt       string  `json:"prompt"`                  // The prompt/message to send to Claude
-	MaxTokens    int     `json:"max_tokens,omitempty"`    // Maximum tokens to generate (default: 1000)
-	Temperature  float64 `json:"temperature,omitempty"`   // Temperature for response generation (default: 0.7)
-	SystemPrompt string  `json:"system_prompt,omitempty"` // System prompt for Claude
-	Timeout      int     `json:"timeout,omitempty"`       // Timeout in seconds (default: 60)
+	APIKey       string  `yaml:"api_key,omitempty"`       // Claude API key (can also be set via CLAUDE_API_KEY env var)
+	Model        string  `yaml:"model,omitempty"`         // Claude model to use (default: claude-3-sonnet-20240229)
+	Prompt       string  `yaml:"prompt"`                  // The prompt/message to send to Claude
+	MaxTokens    int     `yaml:"max_tokens,omitempty"`    // Maximum tokens to generate (default: 1000)
+	Temperature  float64 `yaml:"temperature,omitempty"`   // Temperature for response generation (default: 0.7)
+	SystemPrompt string  `yaml:"system_prompt,omitempty"` // System prompt for Claude
+	Timeout      int     `yaml:"timeout,omitempty"`       // Timeout in seconds (default: 60)
 }
 
 // ActionOutput represents the output structure for the claude-api action
 type ActionOutput struct {
-	Success  bool   `json:"success"`
-	Message  string `json:"message"`
-	Response string `json:"response,omitempty"` // Claude's response
-	Model    string `json:"model,omitempty"`    // Model used
+	Success  bool   `yaml:"success"`
+	Message  string `yaml:"message"`
+	Response string `yaml:"response,omitempty"` // Claude's response
+	Model    string `yaml:"model,omitempty"`    // Model used
 	Usage    Usage  `json:"usage,omitempty"`    // Token usage information
 	Error    string `json:"error,omitempty"`
 }
@@ -78,11 +80,16 @@ type ClaudeErrorResponse struct {
 }
 
 func main() {
-	// Read JSON input from stdin
+	// Read YAML input from stdin
+	inputData, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		sendErrorResponse("Failed to read input from stdin", err.Error())
+		return
+	}
+
 	var input ActionInput
-	decoder := json.NewDecoder(os.Stdin)
-	if err := decoder.Decode(&input); err != nil {
-		sendErrorResponse("Failed to parse JSON input", err.Error())
+	if err := yaml.Unmarshal(inputData, &input); err != nil {
+		sendErrorResponse("Failed to parse YAML input", err.Error())
 		return
 	}
 
@@ -222,11 +229,12 @@ func main() {
 		Usage:    claudeResp.Usage,
 	}
 
-	encoder := json.NewEncoder(os.Stdout)
-	if err := encoder.Encode(output); err != nil {
-		log.Printf("Failed to encode output: %v", err)
+	outputYAML, err := yaml.Marshal(output)
+	if err != nil {
+		log.Printf("Failed to marshal output: %v", err)
 		os.Exit(1)
 	}
+	fmt.Print(string(outputYAML))
 
 	log.Printf("Request completed successfully. Input tokens: %d, Output tokens: %d", claudeResp.Usage.InputTokens, claudeResp.Usage.OutputTokens)
 }
@@ -238,9 +246,12 @@ func sendErrorResponse(message, errorDetail string) {
 		Error:   errorDetail,
 	}
 
-	encoder := json.NewEncoder(os.Stdout)
-	if err := encoder.Encode(output); err != nil {
-		log.Printf("Failed to encode error response: %v", err)
+	outputYAML, err := yaml.Marshal(output)
+	if err != nil {
+		log.Printf("Failed to marshal error response: %v", err)
+		fmt.Printf("success: false\nmessage: \"%s\"\nerror: \"%s\"\n", message, errorDetail)
+	} else {
+		fmt.Print(string(outputYAML))
 	}
 	os.Exit(1)
 }

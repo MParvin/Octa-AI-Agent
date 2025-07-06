@@ -1,8 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strings"
@@ -13,47 +13,56 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/storage/memory"
+	"gopkg.in/yaml.v3"
 )
 
 // ActionInput represents the input structure for the watch-git action
 type ActionInput struct {
-	URL          string `json:"url"`                      // Git repository URL
-	Username     string `json:"username,omitempty"`       // Git username (optional)
-	Password     string `json:"password,omitempty"`       // Git password/token (optional)
-	Branch       string `json:"branch,omitempty"`         // Branch to watch (default: main)
-	Interval     int    `json:"interval,omitempty"`       // Check interval in seconds (default: 60)
-	MaxChecks    int    `json:"max_checks,omitempty"`     // Max number of checks (default: 10)
-	LocalDir     string `json:"local_dir,omitempty"`      // Local directory to clone to (optional)
-	ExitOnChange *bool  `json:"exit_on_change,omitempty"` // Exit immediately when first change is detected (default: true)
+	URL          string `yaml:"url"`                      // Git repository URL
+	Username     string `yaml:"username,omitempty"`       // Git username (optional)
+	Password     string `yaml:"password,omitempty"`       // Git password/token (optional)
+	Branch       string `yaml:"branch,omitempty"`         // Branch to watch (default: main)
+	Interval     int    `yaml:"interval,omitempty"`       // Check interval in seconds (default: 60)
+	MaxChecks    int    `yaml:"max_checks,omitempty"`     // Max number of checks (default: 10)
+	LocalDir     string `yaml:"local_dir,omitempty"`      // Local directory to clone to (optional)
+	ExitOnChange *bool  `yaml:"exit_on_change,omitempty"` // Exit immediately when first change is detected (default: true)
 }
 
 // ActionOutput represents the output structure for the watch-git action
 type ActionOutput struct {
-	Success    bool     `json:"success"`
-	Message    string   `json:"message"`
-	URL        string   `json:"url"`
-	Branch     string   `json:"branch"`
-	LastCommit string   `json:"last_commit,omitempty"`
-	Changes    []Change `json:"changes,omitempty"`
-	CheckCount int      `json:"check_count"`
-	Error      string   `json:"error,omitempty"`
+	Success    bool     `yaml:"success"`
+	Message    string   `yaml:"message"`
+	URL        string   `yaml:"url"`
+	Branch     string   `yaml:"branch"`
+	LastCommit string   `yaml:"last_commit,omitempty"`
+	Changes    []Change `yaml:"changes,omitempty"`
+	CheckCount int      `yaml:"check_count"`
+	Error      string   `yaml:"error,omitempty"`
 }
 
 // Change represents a detected change in the repository
 type Change struct {
-	CommitHash   string   `json:"commit_hash"`
-	Author       string   `json:"author"`
-	Message      string   `json:"message"`
-	Timestamp    string   `json:"timestamp"`
-	FilesChanged []string `json:"files_changed"`
+	CommitHash   string   `yaml:"commit_hash"`
+	Author       string   `yaml:"author"`
+	Message      string   `yaml:"message"`
+	Timestamp    string   `yaml:"timestamp"`
+	FilesChanged []string `yaml:"files_changed"`
 }
 
 func main() {
-	// Read JSON input from stdin
+	// Read YAML input from stdin
 	var input ActionInput
-	decoder := json.NewDecoder(os.Stdin)
-	if err := decoder.Decode(&input); err != nil {
-		sendErrorResponse("Failed to parse JSON input", err.Error())
+
+	// Read all input from stdin
+	inputData, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		sendErrorResponse("Failed to read input from stdin", err.Error())
+		return
+	}
+
+	// Parse YAML input
+	if err := yaml.Unmarshal(inputData, &input); err != nil {
+		sendErrorResponse("Failed to parse YAML input", err.Error())
 		return
 	}
 
@@ -118,13 +127,13 @@ func main() {
 		CheckCount: actualChecks,
 	}
 
-	outputJSON, err := json.Marshal(output)
+	outputYAML, err := yaml.Marshal(output)
 	if err != nil {
-		sendErrorResponse("Failed to marshal output JSON", err.Error())
+		sendErrorResponse("Failed to marshal output YAML", err.Error())
 		return
 	}
 
-	fmt.Print(string(outputJSON))
+	fmt.Print(string(outputYAML))
 }
 
 // watchRepository watches a git repository for changes
@@ -313,13 +322,13 @@ func sendErrorResponse(message string, errorDetail string) {
 		Error:   errorDetail,
 	}
 
-	outputJSON, err := json.Marshal(output)
+	outputYAML, err := yaml.Marshal(output)
 	if err != nil {
-		// Fallback error output
-		fmt.Printf(`{"success": false, "message": "Failed to marshal error response", "error": "%s"}`, message)
+		// Fallback error output in YAML format
+		fmt.Printf("success: false\nmessage: \"Failed to marshal error response\"\nerror: \"%s\"\n", message)
 		os.Exit(1)
 	}
 
-	fmt.Print(string(outputJSON))
+	fmt.Print(string(outputYAML))
 	os.Exit(0) // Exit 0 for graceful error reporting
 }
