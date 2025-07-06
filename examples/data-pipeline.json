@@ -1,0 +1,69 @@
+{
+  "name": "Data Processing Pipeline",
+  "description": "Advanced data pipeline with validation, transformation, and multiple outputs",
+  "version": "1.0",
+  "nodes": [
+    {
+      "id": "initialize_pipeline",
+      "type": "echo-json",
+      "inputs_from_workflow": {
+        "message": "Starting data pipeline for batch {{.WorkflowData.batch_id}} with {{.WorkflowData.record_count}} records"
+      }
+    },
+    {
+      "id": "fetch_source_data",
+      "type": "httprequest",
+      "inputs_from_workflow": {
+        "url": "https://jsonplaceholder.typicode.com/posts",
+        "method": "GET",
+        "headers": {
+          "Accept": "application/json",
+          "X-Batch-ID": "{{.WorkflowData.batch_id}}"
+        },
+        "timeout": 30
+      }
+    },
+    {
+      "id": "create_raw_data_backup",
+      "type": "writefile-json",
+      "inputs_from_workflow": {
+        "path": "{{.WorkflowData.output_dir}}/raw_data_{{.WorkflowData.batch_id}}.json",
+        "mode": "create",
+        "mkdir_all": true,
+        "content": "{{.Nodes.fetch_source_data.Output.body}}"
+      }
+    },
+    {
+      "id": "validate_data_structure",
+      "type": "echo-json",
+      "inputs_from_workflow": {
+        "message": "Data validation: HTTP {{.Nodes.fetch_source_data.Output.status_code}}, Content-Length: {{.Nodes.fetch_source_data.Output.headers.Content-Length}}, Backup: {{.Nodes.create_raw_data_backup.Output.size}} bytes"
+      }
+    },
+    {
+      "id": "create_processing_summary",
+      "type": "writefile-json",
+      "inputs_from_workflow": {
+        "path": "{{.WorkflowData.output_dir}}/processing_summary_{{.WorkflowData.batch_id}}.txt",
+        "mode": "create",
+        "content": "Data Processing Pipeline Summary\n================================\n\nBatch ID: {{.WorkflowData.batch_id}}\nProcessed: {{.WorkflowData.timestamp}}\nSource URL: {{.Nodes.fetch_source_data.Output.url}}\nHTTP Status: {{.Nodes.fetch_source_data.Output.status_code}}\nRaw Data Size: {{.Nodes.create_raw_data_backup.Output.size}} bytes\nValidation: {{.Nodes.validate_data_structure.Output.echoed_message}}\n\nPipeline Status: COMPLETED\nFiles Generated:\n- {{.Nodes.create_raw_data_backup.Output.path}}\n- {{.WorkflowData.output_dir}}/processing_summary_{{.WorkflowData.batch_id}}.txt"
+      }
+    },
+    {
+      "id": "create_metadata_file",
+      "type": "writefile-json",
+      "inputs_from_workflow": {
+        "path": "{{.WorkflowData.output_dir}}/metadata_{{.WorkflowData.batch_id}}.json",
+        "mode": "create",
+        "content": "{\n  \"pipeline_version\": \"1.0\",\n  \"batch_id\": \"{{.WorkflowData.batch_id}}\",\n  \"processed_timestamp\": \"{{.WorkflowData.timestamp}}\",\n  \"source_api\": {\n    \"url\": \"{{.Nodes.fetch_source_data.Output.url}}\",\n    \"status_code\": {{.Nodes.fetch_source_data.Output.status_code}},\n    \"response_time_ms\": {{.Nodes.fetch_source_data.Output.response_time_ms}}\n  },\n  \"output_files\": {\n    \"raw_data\": \"{{.Nodes.create_raw_data_backup.Output.path}}\",\n    \"summary\": \"{{.Nodes.create_processing_summary.Output.path}}\",\n    \"metadata\": \"{{.WorkflowData.output_dir}}/metadata_{{.WorkflowData.batch_id}}.json\"\n  },\n  \"processing_status\": \"completed\"\n}"
+      }
+    },
+    {
+      "id": "pipeline_completion",
+      "type": "echo-json",
+      "inputs_from_workflow": {
+        "message": "Pipeline {{.WorkflowData.batch_id}} completed successfully. Generated {{.Nodes.create_metadata_file.Output.size}} metadata, {{.Nodes.create_processing_summary.Output.size}} summary, {{.Nodes.create_raw_data_backup.Output.size}} raw data."
+      }
+    }
+  ]
+}

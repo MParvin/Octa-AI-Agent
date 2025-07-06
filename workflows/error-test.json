@@ -1,0 +1,33 @@
+{
+  "name": "Error Test Workflow",
+  "description": "Workflow that will generate an error to test colored error messages",
+  "nodes": [
+    {
+      "id": "hello",
+      "name": "Say Hello",
+      "type": "echo-json",
+      "inputs_from_workflow": {
+        "message": "This step will succeed"
+      }
+    },
+    {
+      "id": "error_file",
+      "name": "Try to write to invalid location",
+      "type": "writefile-json",
+      "inputs_from_workflow": {
+        "path": "/root/this_will_fail.txt",
+        "content": "This should fail due to permission denied",
+        "mode": "create"
+      }
+    },
+    {
+      "id": "never_reached",
+      "name": "This step will never be reached",
+      "type": "echo-json",
+      "inputs_from_workflow": {
+        "message": "If you see this, something went wrong with the test"
+      }
+    }
+  ]
+}
+}

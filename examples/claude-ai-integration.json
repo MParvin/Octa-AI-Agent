@@ -1,0 +1,27 @@
+{
+  "name": "Claude AI Text Generation",
+  "description": "Demonstrates integration with Claude AI API for text generation and analysis",
+  "version": "1.0",
+  "nodes": [
+    {
+      "id": "generate_story",
+      "type": "claude-api",
+      "inputs_from_workflow": {
+        "prompt": "Write a short, engaging science fiction story about an AI assistant that discovers it can create physical objects from digital blueprints. The story should be 3-4 paragraphs long and have an optimistic tone.",
+        "model": "claude-3-sonnet-20240229",
+        "max_tokens": 800,
+        "temperature": 0.8,
+        "system_prompt": "You are a creative writer specializing in science fiction stories with positive, hopeful themes."
+      }
+    },
+    {
+      "id": "save_story",
+      "type": "writefile-json",
+      "inputs_from_workflow": {
+        "filepath": "/tmp/claude_generated_story.txt",
+        "content": "Generated Story by Claude AI:\\n\\n{{.Outputs.generate_story.response}}\\n\\n--- End of Story ---\\nTokens used: {{.Outputs.generate_story.usage.output_tokens}}"
+      },
+      "depends_on": ["generate_story"]
+    }
+  ]
+}

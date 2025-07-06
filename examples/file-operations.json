@@ -1,0 +1,30 @@
+{
+  "name": "File Operations Workflow",
+  "description": "Demonstrates file creation and content templating",
+  "version": "1.0",
+  "nodes": [
+    {
+      "id": "create_welcome_message",
+      "type": "echo-json",
+      "inputs_from_workflow": {
+        "message": "Generating report for user {{.WorkflowData.user_id}} at {{.WorkflowData.timestamp}}"
+      }
+    },
+    {
+      "id": "create_user_report",
+      "type": "writefile-json",
+      "inputs_from_workflow": {
+        "path": "/tmp/user_{{.WorkflowData.user_id}}_report.txt",
+        "mode": "create",
+        "content": "User Report\n=============\n\nUser ID: {{.WorkflowData.user_id}}\nGenerated: {{.WorkflowData.timestamp}}\nStatus: {{.Nodes.create_welcome_message.Output.echoed_message}}\n\nReport complete."
+      }
+    },
+    {
+      "id": "confirm_creation",
+      "type": "echo-json",
+      "inputs_from_workflow": {
+        "message": "Report successfully created at: {{.Nodes.create_user_report.Output.path}}"
+      }
+    }
+  ]
+}

@@ -1,0 +1,116 @@
+{
+  "name": "Professional CI/CD Pipeline",
+  "description": "Enterprise-grade CI/CD workflow with validation, testing, building, and deployment",
+  "version": "1.0",
+  "nodes": [
+    {
+      "id": "pipeline_initialization",
+      "type": "echo-json",
+      "inputs_from_workflow": {
+        "message": "Initializing CI/CD Pipeline for {{.WorkflowData.project_name}} v{{.WorkflowData.version}} - Branch: {{.WorkflowData.branch}} - Commit: {{.WorkflowData.commit_sha}}"
+      }
+    },
+    {
+      "id": "validate_environment",
+      "type": "httprequest",
+      "inputs_from_workflow": {
+        "url": "https://httpbin.org/get?environment={{.WorkflowData.environment}}&project={{.WorkflowData.project_name}}",
+        "method": "GET",
+        "headers": {
+          "Authorization": "Bearer {{.WorkflowData.api_token}}",
+          "X-Pipeline-ID": "{{.WorkflowData.pipeline_id}}",
+          "X-Environment": "{{.WorkflowData.environment}}"
+        },
+        "timeout": 15
+      }
+    },
+    {
+      "id": "code_quality_check",
+      "type": "echo-json",
+      "inputs_from_workflow": {
+        "message": "Code quality validation passed for {{.WorkflowData.project_name}} - Environment check status: {{.Nodes.validate_environment.Output.status_code}}"
+      }
+    },
+    {
+      "id": "run_unit_tests",
+      "type": "httprequest",
+      "inputs_from_workflow": {
+        "url": "https://httpbin.org/post",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Test-Suite": "unit"
+        },
+        "body": "{\"project\": \"{{.WorkflowData.project_name}}\", \"branch\": \"{{.WorkflowData.branch}}\", \"commit\": \"{{.WorkflowData.commit_sha}}\", \"test_type\": \"unit\", \"environment\": \"{{.WorkflowData.environment}}\"}"
+      }
+    },
+    {
+      "id": "build_artifact",
+      "type": "writefile-json",
+      "inputs_from_workflow": {
+        "path": "{{.WorkflowData.artifacts_dir}}/{{.WorkflowData.project_name}}-{{.WorkflowData.version}}-build.json",
+        "mode": "create",
+        "mkdir_all": true,
+        "content": "{\n  \"build_info\": {\n    \"project_name\": \"{{.WorkflowData.project_name}}\",\n    \"version\": \"{{.WorkflowData.version}}\",\n    \"branch\": \"{{.WorkflowData.branch}}\",\n    \"commit_sha\": \"{{.WorkflowData.commit_sha}}\",\n    \"build_timestamp\": \"{{.WorkflowData.timestamp}}\",\n    \"environment\": \"{{.WorkflowData.environment}}\"\n  },\n  \"validation_results\": {\n    \"environment_check\": {{.Nodes.validate_environment.Output.status_code}},\n    \"code_quality\": \"{{.Nodes.code_quality_check.Output.echoed_message}}\",\n    \"unit_tests\": {{.Nodes.run_unit_tests.Output.status_code}}\n  },\n  \"build_status\": \"success\",\n  \"artifact_path\": \"{{.WorkflowData.artifacts_dir}}/{{.WorkflowData.project_name}}-{{.WorkflowData.version}}-build.json\"\n}"
+      }
+    },
+    {
+      "id": "integration_tests",
+      "type": "httprequest",
+      "inputs_from_workflow": {
+        "url": "https://httpbin.org/post",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Test-Suite": "integration",
+          "X-Artifact-Path": "{{.Nodes.build_artifact.Output.path}}"
+        },
+        "body": "{\"project\": \"{{.WorkflowData.project_name}}\", \"version\": \"{{.WorkflowData.version}}\", \"test_type\": \"integration\", \"artifact_size\": {{.Nodes.build_artifact.Output.size}}, \"environment\": \"{{.WorkflowData.environment}}\"}"
+      }
+    },
+    {
+      "id": "deploy_to_staging",
+      "type": "httprequest",
+      "inputs_from_workflow": {
+        "url": "https://httpbin.org/put",
+        "method": "PUT",
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer {{.WorkflowData.deploy_token}}",
+          "X-Target-Environment": "staging"
+        },
+        "body": "{\"action\": \"deploy\", \"project\": \"{{.WorkflowData.project_name}}\", \"version\": \"{{.WorkflowData.version}}\", \"artifact_path\": \"{{.Nodes.build_artifact.Output.path}}\", \"tests_passed\": [{{.Nodes.run_unit_tests.Output.status_code}}, {{.Nodes.integration_tests.Output.status_code}}]}"
+      }
+    },
+    {
+      "id": "create_deployment_report",
+      "type": "writefile-json",
+      "inputs_from_workflow": {
+        "path": "{{.WorkflowData.reports_dir}}/deployment_{{.WorkflowData.pipeline_id}}_report.txt",
+        "mode": "create",
+        "mkdir_all": true,
+        "content": "CI/CD Pipeline Deployment Report\n================================\n\nPipeline ID: {{.WorkflowData.pipeline_id}}\nProject: {{.WorkflowData.project_name}} v{{.WorkflowData.version}}\nBranch: {{.WorkflowData.branch}}\nCommit: {{.WorkflowData.commit_sha}}\nEnvironment: {{.WorkflowData.environment}}\nDeployment Timestamp: {{.WorkflowData.timestamp}}\n\nPipeline Stages:\n----------------\n1. Environment Validation: HTTP {{.Nodes.validate_environment.Output.status_code}}\n2. Code Quality Check: PASSED\n3. Unit Tests: HTTP {{.Nodes.run_unit_tests.Output.status_code}}\n4. Build Artifact: {{.Nodes.build_artifact.Output.size}} bytes\n5. Integration Tests: HTTP {{.Nodes.integration_tests.Output.status_code}}\n6. Staging Deployment: HTTP {{.Nodes.deploy_to_staging.Output.status_code}}\n\nGenerated Files:\n---------------\n- Build Artifact: {{.Nodes.build_artifact.Output.path}}\n- Deployment Report: {{.WorkflowData.reports_dir}}/deployment_{{.WorkflowData.pipeline_id}}_report.txt\n\nPipeline Status: COMPLETED SUCCESSFULLY\n\nNext Steps: Manual approval required for production deployment"
+      }
+    },
+    {
+      "id": "send_notification",
+      "type": "httprequest",
+      "inputs_from_workflow": {
+        "url": "https://httpbin.org/post",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Notification-Type": "pipeline-completion"
+        },
+        "body": "{\"event\": \"pipeline_completed\", \"project\": \"{{.WorkflowData.project_name}}\", \"version\": \"{{.WorkflowData.version}}\", \"environment\": \"{{.WorkflowData.environment}}\", \"status\": \"success\", \"pipeline_id\": \"{{.WorkflowData.pipeline_id}}\", \"deployment_report\": \"{{.Nodes.create_deployment_report.Output.path}}\", \"staging_deployment_status\": {{.Nodes.deploy_to_staging.Output.status_code}}, \"timestamp\": \"{{.WorkflowData.timestamp}}\"}"
+      }
+    },
+    {
+      "id": "pipeline_completion",
+      "type": "echo-json",
+      "inputs_from_workflow": {
+        "message": "CI/CD Pipeline {{.WorkflowData.pipeline_id}} completed successfully! {{.WorkflowData.project_name}} v{{.WorkflowData.version}} deployed to staging. Notification sent with status {{.Nodes.send_notification.Output.status_code}}."
+      }
+    }
+  ]
+}
