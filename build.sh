@@ -50,6 +50,12 @@ cd "$PROJECT_ROOT/actions/claude-api"
 go mod tidy
 go build -o "../../bin/claude-api" .
 
+# Build watch-git action
+echo "  - watch-git"
+cd "$PROJECT_ROOT/actions/watch-git"
+go mod tidy
+go build -o "../../bin/watch-git" .
+
 echo ""
 echo "✅ Build completed successfully!"
 echo ""
@@ -60,6 +66,7 @@ echo "  - bin/echo-json      - Echo action with JSON I/O"
 echo "  - bin/writefile-json - File writing action"
 echo "  - bin/httprequest    - HTTP request action"
 echo "  - bin/claude-api     - Claude API integration action"
+echo "  - bin/watch-git      - Git repository watcher action"
 echo ""
 echo "To test the V1 agent:"
 echo "  ./bin/cli run workflows/simple-test.json '{\"agent_name\":\"Go-AI-Agent\",\"test_id\":\"123\"}'"

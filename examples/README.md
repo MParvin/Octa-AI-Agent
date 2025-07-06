@@ -1,6 +1,7 @@
 # Examples Directory
 
-This directory contains example workflows for the Go AI Agent V1.0, ranging from simple to professional use cases.
+This directory   # Git Repository Watcher (Monitoring)
+   ../bin/cli run git-watch.json '{"repo_url":"https://github.com/octocat/Hello-World.git","branch":"master","username":"","password":"","timestamp":"2024-01-20T10:30:00Z"}'ontains example workflows for the Go AI Agent V1.0, ranging from simple to professional use cases.
 
 ## Quick Start
 
@@ -33,6 +34,9 @@ This directory contains example workflows for the Go AI Agent V1.0, ranging from
    # Claude AI Integration (AI-Powered)
    export CLAUDE_API_KEY="your-claude-api-key-here"
    ../bin/cli run claude-ai-integration.json '{}'
+   
+   # Git Repository Watcher (Monitoring)
+   ../bin/cli run git-watch.json '{"repo_url":"https://github.com/owner/repo.git","branch":"main","username":"","password":"","interval":"30","max_checks":"5","timestamp":"2024-01-20T10:30:00Z"}'
    ```
 
 3. **Validate workflows:**
@@ -47,5 +51,6 @@ This directory contains example workflows for the Go AI Agent V1.0, ranging from
 - `api-integration.json` - HTTP API calls and data processing
 - `data-pipeline.json` - Advanced pipeline with validation
 - `cicd-pipeline.json` - Professional CI/CD workflow
+- `git-watch.json` - Git repository monitoring and change detection
 
 For detailed explanations of each example, see the main [EXAMPLE.md](../EXAMPLE.md) file.
