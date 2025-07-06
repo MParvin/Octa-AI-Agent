@@ -91,7 +91,7 @@ max_checks: 10
 
 ### In a Workflow
 
-See `examples/git-watch.json` for a complete workflow example that demonstrates how to integrate the watch-git action with other actions to create reports and notifications.
+See `examples/git-watch.yaml` for a complete workflow example that demonstrates how to integrate the watch-git action with other actions to create reports and notifications.
 
 ## Authentication
 

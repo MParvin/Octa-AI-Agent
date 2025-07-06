@@ -23,32 +23,32 @@ echo ""
 
 # Example 1: Hello World
 echo "1️⃣  Running Hello World Example..."
-echo "   Command: ./bin/cli run examples/hello-world.json '{\"name\":\"Alice\"}'"
-./bin/cli run examples/hello-world.json '{"name":"Alice"}'
+echo "   Command: ./bin/cli run examples/hello-world.yaml '{\"name\":\"Alice\"}'"
+./bin/cli run examples/hello-world.yaml '{"name":"Alice"}'
 echo ""
 
 # Example 2: File Operations
 echo "2️⃣  Running File Operations Example..."
-echo "   Command: ./bin/cli run examples/file-operations.json '{\"user_id\":\"12345\",\"timestamp\":\"2024-01-20T10:30:00Z\"}'"
-./bin/cli run examples/file-operations.json '{"user_id":"12345","timestamp":"2024-01-20T10:30:00Z"}'
+echo "   Command: ./bin/cli run examples/file-operations.yaml '{\"user_id\":\"12345\",\"timestamp\":\"2024-01-20T10:30:00Z\"}'"
+./bin/cli run examples/file-operations.yaml '{"user_id":"12345","timestamp":"2024-01-20T10:30:00Z"}'
 echo ""
 
 # Example 3: API Integration
 echo "3️⃣  Running API Integration Example..."
-echo "   Command: ./bin/cli run examples/api-integration.json '{\"user_id\":\"3\",\"timestamp\":\"2024-01-20T10:30:00Z\",\"output_dir\":\"/tmp/reports\"}'"
-./bin/cli run examples/api-integration.json '{"user_id":"3","timestamp":"2024-01-20T10:30:00Z","output_dir":"/tmp/reports"}'
+echo "   Command: ./bin/cli run examples/api-integration.yaml '{\"user_id\":\"3\",\"timestamp\":\"2024-01-20T10:30:00Z\",\"output_dir\":\"/tmp/reports\"}'"
+./bin/cli run examples/api-integration.yaml '{"user_id":"3","timestamp":"2024-01-20T10:30:00Z","output_dir":"/tmp/reports"}'
 echo ""
 
 # Example 4: Data Pipeline
 echo "4️⃣  Running Data Pipeline Example..."
-echo "   Command: ./bin/cli run examples/data-pipeline.json '{\"batch_id\":\"batch_001\",\"timestamp\":\"2024-01-20T10:30:00Z\",\"output_dir\":\"/tmp/data-pipeline\",\"record_count\":\"100\"}'"
-./bin/cli run examples/data-pipeline.json '{"batch_id":"batch_001","timestamp":"2024-01-20T10:30:00Z","output_dir":"/tmp/data-pipeline","record_count":"100"}'
+echo "   Command: ./bin/cli run examples/data-pipeline.yaml '{\"batch_id\":\"batch_001\",\"timestamp\":\"2024-01-20T10:30:00Z\",\"output_dir\":\"/tmp/data-pipeline\",\"record_count\":\"100\"}'"
+./bin/cli run examples/data-pipeline.yaml '{"batch_id":"batch_001","timestamp":"2024-01-20T10:30:00Z","output_dir":"/tmp/data-pipeline","record_count":"100"}'
 echo ""
 
 # Example 5: CI/CD Pipeline
 echo "5️⃣  Running CI/CD Pipeline Example..."
-echo "   Command: ./bin/cli run examples/cicd-pipeline.json '...(complex JSON)...'"
-./bin/cli run examples/cicd-pipeline.json '{
+echo "   Command: ./bin/cli run examples/cicd-pipeline.yaml '...(complex JSON)...'"
+./bin/cli run examples/cicd-pipeline.yaml '{
   "project_name": "web-application",
   "version": "2.1.0",
   "branch": "main",
@@ -72,5 +72,5 @@ echo "   - /tmp/data-pipeline/"
 echo "   - /tmp/cicd/"
 echo ""
 echo "🔍 To validate any workflow, use:"
-echo "   ./bin/cli validate examples/[workflow-name].json"
+echo "   ./bin/cli validate examples/[workflow-name].yaml"
 echo ""

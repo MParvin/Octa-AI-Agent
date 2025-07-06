@@ -1,0 +1,38 @@
+name: "Git Repository Watcher"
+description: "Watches a git repository for changes and reports any new commits"
+version: "1.0"
+nodes:
+  - id: "start_watching"
+    type: "echo-json"
+    inputs_from_workflow:
+      message: "Starting to watch repository {{.WorkflowData.repo_url}} for changes..."
+  - id: "watch_repository"
+    type: "watch-git"
+    inputs_from_workflow:
+      url: "{{.WorkflowData.repo_url}}"
+      branch: "{{.WorkflowData.branch}}"
+      username: "{{.WorkflowData.username}}"
+      password: "{{.WorkflowData.password}}"
+      interval: 30
+      max_checks: 5
+      exit_on_change: true
+  - id: "report_results"
+    type: "writefile-json"
+    inputs_from_workflow:
+      path: "/tmp/git_watch_report_{{.WorkflowData.timestamp}}.txt"
+      mode: "create"
+      content: |
+        Git Repository Watch Report
+        =============================
+        
+        Repository: {{.Nodes.watch_repository.Output.url}}
+        Branch: {{.Nodes.watch_repository.Output.branch}}
+        Last Commit: {{.Nodes.watch_repository.Output.last_commit}}
+        Checks Performed: {{.Nodes.watch_repository.Output.check_count}}
+        Status: {{.Nodes.watch_repository.Output.message}}
+        
+        Generated: {{.WorkflowData.timestamp}}
+  - id: "completion_message"
+    type: "echo-json"
+    inputs_from_workflow:
+      message: "Git watching completed. Report saved to: {{.Nodes.report_results.Output.path}}"

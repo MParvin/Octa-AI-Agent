@@ -22,7 +22,7 @@ all_valid=true
 
 echo "📝 Validating workflow syntax..."
 
-for workflow in "$examples_dir"/*.json; do
+for workflow in "$examples_dir"/*.yaml; do
     if [ -f "$workflow" ]; then
         filename=$(basename "$workflow")
         echo -n "   $filename ... "
@@ -42,9 +42,9 @@ if [ "$all_valid" = true ]; then
     echo "🎉 All examples are valid!"
     echo ""
     echo "🚀 Ready to run examples:"
-    echo "   ./bin/cli run examples/hello-world.json '{\"name\":\"Alice\"}'"
-    echo "   ./bin/cli run examples/file-operations.json '{\"user_id\":\"12345\",\"timestamp\":\"2025-06-07T17:30:00Z\"}'"
-    echo "   mkdir -p /tmp/reports && ./bin/cli run examples/api-integration.json '{\"user_id\":\"3\",\"timestamp\":\"2025-06-07T17:30:00Z\",\"output_dir\":\"/tmp/reports\"}'"
+    echo "   ./bin/cli run examples/hello-world.yaml '{\"name\":\"Alice\"}'"
+    echo "   ./bin/cli run examples/file-operations.yaml '{\"user_id\":\"12345\",\"timestamp\":\"2025-06-07T17:30:00Z\"}'"
+    echo "   mkdir -p /tmp/reports && ./bin/cli run examples/api-integration.yaml '{\"user_id\":\"3\",\"timestamp\":\"2025-06-07T17:30:00Z\",\"output_dir\":\"/tmp/reports\"}'"
     echo ""
 else
     echo "❌ Some examples have validation errors"

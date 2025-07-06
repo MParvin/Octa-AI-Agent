@@ -29,9 +29,10 @@ go-ai-agent-v1/
 │   ├── claude-api/        # Claude AI integration action
 │   └── watch-git/         # Git repository watcher action
 ├── workflows/             # Sample workflows
-│   ├── v1-demo.json       # Comprehensive demo workflow (legacy)
-│   ├── simple-test.yaml   # Basic functionality test (YAML)
-│   └── simple-test.json   # Basic functionality test (legacy)
+│   ├── v1-demo.yaml       # Comprehensive demo workflow
+│   ├── v1-simple-demo.yaml # Simple demo workflow
+│   ├── error-test.yaml    # Error handling test
+│   └── simple-test.yaml   # Basic functionality test
 ├── examples/              # Example YAML workflows
 │   ├── hello-world.yaml   # Simple greeting workflow
 │   ├── file-operations.yaml # File creation and templating
@@ -290,15 +291,20 @@ test_id: "yaml-'$(date +%s)'"'
 ```bash
 # Run the full demo workflow
 mkdir -p /tmp/reports
-./bin/cli run workflows/v1-demo.json '{"user_name":"Alice","user_id":"1","timestamp":"'$(date -Iseconds)'","output_dir":"/tmp/reports"}'
+./bin/cli run workflows/v1-demo.yaml 'user_name: "Alice"
+user_id: "1"
+timestamp: "'$(date -Iseconds)'"
+output_dir: "/tmp/reports"'
 ```
 
 ### Manual Testing
 ```bash
 # Test individual action modules
-echo '{"message":"Hello V1!"}' | ./bin/echo-json
-echo '{"path":"/tmp/test.txt","content":"Test content"}' | ./bin/writefile-json
-echo '{"url":"https://httpbin.org/get","method":"GET"}' | ./bin/httprequest
+echo 'message: "Hello V1!"' | ./bin/echo-json
+echo 'path: "/tmp/test.txt"
+content: "Test content"' | ./bin/writefile-json
+echo 'url: "https://httpbin.org/get"
+method: "GET"' | ./bin/httprequest
 ```
 
 ## 🏗️ Architecture
@@ -329,7 +335,7 @@ echo '{"url":"https://httpbin.org/get","method":"GET"}' | ./bin/httprequest
 Set environment variable for detailed logs:
 ```bash
 export GO_AI_AGENT_DEBUG=true
-./bin/cli run workflows/simple-test.json '{"test_id":"debug-test"}'
+./bin/cli run workflows/simple-test.yaml '{"test_id":"debug-test"}'
 ```
 
 ### Common Issues
